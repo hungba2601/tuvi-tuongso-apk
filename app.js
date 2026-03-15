@@ -176,6 +176,29 @@ analyzeBtn.addEventListener('click', async () => {
 
         aiResponseDiv.innerHTML = formatAIResponse(fullResult);
         resultSection.classList.remove('hidden');
+
+        // Stage Extra: Separate Lucky Numbers
+        const luckyToggle = document.getElementById('lucky-num-toggle').checked;
+        const luckySection = document.getElementById('lucky-numbers-section');
+        const luckyContainer = document.getElementById('lucky-numbers-container');
+
+        if (luckyToggle) {
+            luckySection.classList.remove('hidden');
+            luckyContainer.innerHTML = '<div class="spinner"></div>';
+            loadingText.innerText = "Đang xin quẻ số may mắn...";
+
+            try {
+                const luckyRes = await callGeminiAI(apiKey, { fullName, dob, gender, tob }, 'lucky');
+                // Expecting a string like "05, 12, 28, 33, 45, 52"
+                const numbers = luckyRes.match(/\d+/g).slice(0, 6);
+                luckyContainer.innerHTML = numbers.map(num => `<div class="lucky-ball">${num.padStart(2, '0')}</div>`).join('');
+            } catch (e) {
+                luckySection.classList.add('hidden');
+            }
+        } else {
+            luckySection.classList.add('hidden');
+        }
+
         resultSection.scrollIntoView({ behavior: 'smooth' });
     } catch (error) {
         console.error(error);
@@ -197,8 +220,10 @@ async function callGeminiAI(apiKey, data, stage) {
         stageGoals = "Mục 1: Tổng quan Bản mệnh & Cốt cách, Mục 2: Ngũ hành & Dụng thần, Mục 3: Tâm tính & Năng lực Thiên bẩm, Mục 4: Luận giải Chỉ tay Tả (Trái) - Tiên thiên, Mục 5: Luận giải Chỉ tay Hữu (Phải) - Hậu thiên.";
     } else if (stage === 2) {
         stageGoals = "Mục 6: Con đường Công danh & Sự nghiệp Trực đời, Mục 7: Cung Tài bạch & Vận may Tiền bạc, Mục 8: Tình duyên, Hôn nhân & Phu thê, Mục 9: Gia đạo, Luận giải Cung Tử tức & Phúc đức, Mục 10: Tiên tri Sức khỏe & Các tai ương cần tránh.";
-    } else {
+    } else if (stage === 3) {
         stageGoals = `Mục 11: Tổng quan Vận hạn năm ${currentYear}, Mục 12: Chi tiết biến cố 12 tháng trong năm ${currentYear}, Mục 13: Lời khuyên Phong thủy & Phương pháp Cải vận.`;
+    } else if (stage === 'lucky') {
+        stageGoals = "Hãy tìm ra 6 con số may mắn nhất (từ 01 đến 55) dành cho gia chủ dựa trên ngày sinh và giới tính. Chỉ trả về đúng 6 con số, cách nhau bởi dấu phẩy.";
     }
 
     const requestBody = {
@@ -210,7 +235,8 @@ async function callGeminiAI(apiKey, data, stage) {
                 1. Mỗi mục PHẢI bắt đầu bằng marker chính xác: [[PHAN_X]] (ví dụ: [[PHAN_1]], [[PHAN_2]]...).
                 2. Viết cực kỳ chi tiết, hành văn uyên bác, trang trọng.
                 3. Tuyệt đối không được bỏ sót bất kỳ mục nào được giao trong giai đoạn này.
-                4. Sử dụng Markdown (in đậm, gạch đầu dòng) để trình bày.`
+                4. Tại Mục 14: Hãy dựa vào ngày sinh và tướng tay để tìm ra 6 con số may mắn nhất (01-55) dành riêng cho gia chủ. Trình bày các con số này thật ấn tượng.
+                5. Sử dụng Markdown (in đậm, gạch đầu dòng) để trình bày.`
             }]
         },
         contents: [{

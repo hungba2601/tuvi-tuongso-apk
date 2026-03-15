@@ -714,3 +714,83 @@ select:focus {
         padding: 1.2rem;
     }
 }
+
+/* Lucky Numbers Styling */
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    cursor: pointer;
+}
+
+.checkbox-group input {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: var(--primary-color);
+}
+
+.checkbox-group label {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+#lucky-numbers-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.lucky-ball {
+    aspect-ratio: 1/1;
+    background: radial-gradient(circle at 30% 30%, var(--primary-light), var(--primary-color));
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 800;
+    box-shadow: 0 4px 10px rgba(2, 132, 199, 0.4);
+    animation: bounceIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    transform: scale(0);
+}
+
+@keyframes bounceIn {
+    to {
+        transform: scale(1);
+    }
+}
+
+.lucky-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    color: var(--secondary-color);
+}
+
+.lucky-header i {
+    font-size: 1.5rem;
+}
+
+.lucky-header h2 {
+    margin-bottom: 0 !important;
+    color: var(--secondary-color) !important;
+}
+
+.lucky-note {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-style: italic;
+    opacity: 0.8;
+}
+
+@media (max-width: 400px) {
+    #lucky-numbers-container {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
