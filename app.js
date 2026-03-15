@@ -185,16 +185,18 @@ analyzeBtn.addEventListener('click', async () => {
         if (luckyToggle) {
             luckySection.classList.remove('hidden');
             luckyContainer.innerHTML = '<div class="spinner"></div>';
+            // Scroll to lucky section first to show user it's loading
             luckySection.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
             try {
+                // Chỉ dùng thông tin cá nhân cho con số may mắn theo yêu cầu của USER
                 const luckyRes = await callGeminiAI(apiKey, { fullName, dob, gender, tob }, 'lucky');
                 const numbers = (luckyRes.match(/\d+/g) || []).slice(0, 6);
 
                 if (numbers.length >= 6) {
                     luckyContainer.innerHTML = numbers.map(num => `<div class="lucky-ball">${num.padStart(2, '0')}</div>`).join('');
                 } else {
-                    luckyContainer.innerHTML = "<p>Không thể khởi tạo con số, vui lòng thử lại.</p>";
+                    luckyContainer.innerHTML = "<p>Đang giải hạn, vui lòng thử lại sau...</p>";
                 }
             } catch (e) {
                 console.error("Lucky number error:", e);
@@ -230,7 +232,17 @@ async function callGeminiAI(apiKey, data, stage) {
     } else if (stage === 3) {
         stageGoals = `Mục 11: Tổng quan Vận hạn năm ${currentYear}, Mục 12: Chi tiết biến cố 4 quý trong năm ${currentYear} (Quý 1: tháng 1-3, Quý 2: tháng 4-6, Quý 3: tháng 7-9, Quý 4: tháng 10-12) - viết súc tích theo quý, Mục 13: Lời khuyên Phong thủy & Phương pháp Cải vận.`;
     } else if (stage === 'lucky') {
-        stageGoals = "Hãy tìm ra 6 con số may mắn nhất (từ 01 đến 55) dành cho gia chủ dựa trên ngày sinh và giới tính. Chỉ trả về đúng 6 con số, ví dụ: 05, 12, 28, 33, 45, 52. Tuyệt đối không viết gì thêm.";
+        stageGoals = "Hãy tìm ra 6 con số may mắn nhất (từ 01 đến 55) dành cho gia chủ dựa trên Họ tên, Ngày sinh và Giới tính. Chỉ trả về đúng 6 con số, ví dụ: 05, 12, 28, 33, 45, 52. Tuyệt đối không viết gì thêm.";
+    }
+
+    const parts = [
+        { text: `Gia chủ: ${data.fullName}, Ngày sinh: ${data.dob}, Giới tính: ${data.gender}. Hãy viết các mục sau: ${stageGoals}` }
+    ];
+
+    // Only add images if they exist
+    if (data.images && data.images.left && data.images.right) {
+        parts.push({ inline_data: { mime_type: "image/jpeg", data: data.images.left } });
+        parts.push({ inline_data: { mime_type: "image/jpeg", data: data.images.right } });
     }
 
     const requestBody = {
@@ -240,18 +252,14 @@ async function callGeminiAI(apiKey, data, stage) {
                 NHIỆM VỤ: Luận giải chi tiết các mục được yêu cầu.
                 QUY TẮC:
                 1. Mỗi mục PHẢI bắt đầu bằng marker chính xác: [[PHAN_X]] (ví dụ: [[PHAN_1]], [[PHAN_2]]...).
-                2. Viết cực kỳ chi tiết, hành văn uyên bác, trang trọng.
+                2. Viết cực kỳ chi tiết (200-300 chữ mỗi mục), hành văn uyên bác, trang trọng.
                 3. Tuyệt đối không được bỏ sót bất kỳ mục nào được giao trong giai đoạn này.
-                4. Tại Mục 14: Hãy dựa vào ngày sinh và tướng tay để tìm ra 6 con số may mắn nhất (01-55) dành riêng cho gia chủ. Trình bày các con số này thật ấn tượng.
+                4. Tại Mục 14: Hãy dựa vào ngày sinh, họ tên và giới tính để tìm ra 6 con số may mắn nhất (01-55) dành riêng cho gia chủ (không cần tướng tay). Trình bày các con số này thật ấn tượng.
                 5. Sử dụng Markdown (in đậm, gạch đầu dòng) để trình bày.`
             }]
         },
         contents: [{
-            parts: [
-                { text: `Gia chủ: ${data.fullName}, Ngày sinh: ${data.dob}, Giới tính: ${data.gender}. Hãy viết các mục sau: ${stageGoals}` },
-                { inline_data: { mime_type: "image/jpeg", data: data.images.left } },
-                { inline_data: { mime_type: "image/jpeg", data: data.images.right } }
-            ]
+            parts: parts
         }],
         generationConfig: {
             temperature: 0.7,
