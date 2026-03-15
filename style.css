@@ -725,6 +725,10 @@ select:focus {
     background: rgba(245, 158, 11, 0.1);
     border-radius: var(--radius-md);
     border: 1px solid rgba(245, 158, 11, 0.3);
+    margin-top: 0.5rem;
+}
+
+.checkbox-group:first-of-type {
     margin-top: 1rem;
 }
 
