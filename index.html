@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TỬ VI & TƯỚNG SỐ AI</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0284c7">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Playfair+Display:wght@700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <header id="app-header">
+            <div class="header-center">
+                <h1>TỬ VI & TƯỚNG SỐ AI</h1>
+                <p class="copyright-text"> Made by Nguyễn Phi Hùng - Zalo 0938750424</p>
+            </div>
+            <div class="header-actions">
+                <button id="theme-toggle" title="Đổi giao diện"><i class="fas fa-moon"></i></button>
+                <button id="settings-btn" title="Cấu hình API"><i class="fas fa-cog"></i></button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main id="main-content">
+            <!-- Step 1: Info Input -->
+            <section id="info-section" class="card fade-in">
+                <h2>Thông Tin Cá Nhân</h2>
+                <div class="input-group">
+                    <label for="full-name">Họ và Tên</label>
+                    <input type="text" id="full-name" placeholder="Nhập họ tên đầy đủ...">
+                </div>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label for="dob">Ngày Sinh</label>
+                        <input type="date" id="dob">
+                    </div>
+                    <div class="input-group">
+                        <label for="gender">Giới Tính</label>
+                        <select id="gender">
+                            <option value="Nam">Nam</option>
+                            <option value="Nữ">Nữ</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label for="tob">Giờ Sinh (nếu biết)</label>
+                    <input type="time" id="tob">
+                </div>
+            </section>
+
+            <!-- Step 2: Palmistry Upload -->
+            <section id="palm-section" class="card fade-in">
+                <h2>Tướng Số Chỉ Tay</h2>
+                <p class="subtitle">Vui lòng chụp ảnh rõ nét lòng bàn tay</p>
+                <div class="upload-grid">
+                    <div class="upload-box" id="left-palm-box">
+                        <input type="file" id="left-palm-input" accept="image/*" hidden>
+                        <div class="placeholder">
+                            <i class="fas fa-hand-sparkles"></i>
+                            <span>Tay Trái</span>
+                        </div>
+                        <img id="left-palm-preview" class="preview-img hidden">
+                        <button class="remove-btn hidden"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="upload-box" id="right-palm-box">
+                        <input type="file" id="right-palm-input" accept="image/*" hidden>
+                        <div class="placeholder">
+                            <i class="fas fa-hand-sparkles"></i>
+                            <span>Tay Phải</span>
+                        </div>
+                        <img id="right-palm-preview" class="preview-img hidden">
+                        <button class="remove-btn hidden"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Action Button -->
+            <div class="action-container">
+                <button id="analyze-btn" class="primary-btn">
+                    <span class="btn-text">Bắt Đầu Phân Tích</span>
+                    <i class="fas fa-star-and-crescent"></i>
+                </button>
+            </div>
+
+            <!-- Result Section -->
+            <section id="result-section" class="card fade-in hidden">
+                <div class="result-header">
+                    <h2>Kết Quả Phân Tích</h2>
+                    <button id="download-btn" title="Tải kết quả"><i class="fas fa-download"></i></button>
+                </div>
+                <div id="ai-response" class="markdown-body">
+                    <!-- AI response will be injected here -->
+                </div>
+            </section>
+        </main>
+
+        <!-- Settings Modal (API Key) -->
+        <div id="settings-modal" class="modal hidden">
+            <div class="modal-content">
+                <h3>Cấu Hình API</h3>
+                <p>Nhập API Key của Gemini để sử dụng dịch vụ.</p>
+                <div class="input-group">
+                    <label for="api-key">Gemini API Key</label>
+                    <input type="password" id="api-key" placeholder="Dán API key tại đây...">
+                </div>
+                <p class="note">Yêu cầu: Gemini 2.5 Flash</p>
+                <div class="modal-actions">
+                    <button id="save-settings" class="primary-btn">Lưu Lại</button>
+                    <button id="close-modal" class="secondary-btn">Đóng</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="overlay hidden">
+            <div class="spinner-container">
+                <div class="spinner"></div>
+                <p>Đang giải mã bí mật của các vì sao...</p>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker registered.'))
+                    .catch(err => console.log('Service Worker failed:', err));
+            });
+        }
+    </script>
+</body>
+
+</html>
