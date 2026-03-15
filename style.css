@@ -715,47 +715,59 @@ select:focus {
     }
 }
 
-/* Lucky Numbers Styling */
+/* Lucky Numbers Styling - Premium Version */
 .checkbox-group {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.5rem 0;
+    padding: 1rem;
     cursor: pointer;
+    background: rgba(245, 158, 11, 0.1);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    margin-top: 1rem;
 }
 
 .checkbox-group input {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     cursor: pointer;
-    accent-color: var(--primary-color);
+    accent-color: #f59e0b;
 }
 
 .checkbox-group label {
     cursor: pointer;
-    font-weight: 600;
-    color: var(--primary-color);
+    font-weight: 700;
+    color: #b45309;
+}
+
+#lucky-numbers-section {
+    border: 3px solid #f59e0b;
+    background: linear-gradient(to bottom, #fffcf0, #ffffff);
 }
 
 #lucky-numbers-container {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    margin: 1.5rem 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.2rem;
+    margin: 2rem 0;
 }
 
 .lucky-ball {
-    aspect-ratio: 1/1;
-    background: radial-gradient(circle at 30% 30%, var(--primary-light), var(--primary-color));
+    width: 65px;
+    height: 65px;
+    background: radial-gradient(circle at 30% 30%, #fbbf24, #d97706);
     color: white;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
-    font-weight: 800;
-    box-shadow: 0 4px 10px rgba(2, 132, 199, 0.4);
-    animation: bounceIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    font-size: 1.8rem;
+    font-weight: 900;
+    box-shadow: 0 6px 15px rgba(217, 119, 6, 0.4);
+    border: 2px solid #fff;
+    animation: bounceIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
     transform: scale(0);
 }
 
@@ -768,29 +780,39 @@ select:focus {
 .lucky-header {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.8rem;
-    color: var(--secondary-color);
+    color: #b45309;
 }
 
 .lucky-header i {
-    font-size: 1.5rem;
+    font-size: 1.8rem;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
 
 .lucky-header h2 {
     margin-bottom: 0 !important;
-    color: var(--secondary-color) !important;
+    color: #b45309 !important;
 }
 
 .lucky-note {
     text-align: center;
-    font-size: 0.85rem;
-    color: var(--text-muted);
+    font-size: 0.9rem;
+    color: #92400e;
     font-style: italic;
-    opacity: 0.8;
-}
-
-@media (max-width: 400px) {
-    #lucky-numbers-container {
-        grid-template-columns: repeat(3, 1fr);
-    }
+    opacity: 0.9;
 }

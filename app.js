@@ -177,7 +177,7 @@ analyzeBtn.addEventListener('click', async () => {
         aiResponseDiv.innerHTML = formatAIResponse(fullResult);
         resultSection.classList.remove('hidden');
 
-        // Stage Extra: Separate Lucky Numbers
+        // Stage Extra: Separate Lucky Numbers (Handle at the end or in parallel)
         const luckyToggle = document.getElementById('lucky-num-toggle').checked;
         const luckySection = document.getElementById('lucky-numbers-section');
         const luckyContainer = document.getElementById('lucky-numbers-container');
@@ -185,21 +185,28 @@ analyzeBtn.addEventListener('click', async () => {
         if (luckyToggle) {
             luckySection.classList.remove('hidden');
             luckyContainer.innerHTML = '<div class="spinner"></div>';
-            loadingText.innerText = "Đang xin quẻ số may mắn...";
+            luckySection.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
             try {
                 const luckyRes = await callGeminiAI(apiKey, { fullName, dob, gender, tob }, 'lucky');
-                // Expecting a string like "05, 12, 28, 33, 45, 52"
-                const numbers = luckyRes.match(/\d+/g).slice(0, 6);
-                luckyContainer.innerHTML = numbers.map(num => `<div class="lucky-ball">${num.padStart(2, '0')}</div>`).join('');
+                const numbers = (luckyRes.match(/\d+/g) || []).slice(0, 6);
+
+                if (numbers.length >= 6) {
+                    luckyContainer.innerHTML = numbers.map(num => `<div class="lucky-ball">${num.padStart(2, '0')}</div>`).join('');
+                } else {
+                    luckyContainer.innerHTML = "<p>Không thể khởi tạo con số, vui lòng thử lại.</p>";
+                }
             } catch (e) {
+                console.error("Lucky number error:", e);
                 luckySection.classList.add('hidden');
             }
         } else {
             luckySection.classList.add('hidden');
         }
 
-        resultSection.scrollIntoView({ behavior: 'smooth' });
+        if (!luckyToggle) {
+            resultSection.scrollIntoView({ behavior: 'smooth' });
+        }
     } catch (error) {
         console.error(error);
         alert('Có lỗi xảy ra: ' + error.message);
@@ -221,9 +228,9 @@ async function callGeminiAI(apiKey, data, stage) {
     } else if (stage === 2) {
         stageGoals = "Mục 6: Con đường Công danh & Sự nghiệp Trực đời, Mục 7: Cung Tài bạch & Vận may Tiền bạc, Mục 8: Tình duyên, Hôn nhân & Phu thê, Mục 9: Gia đạo, Luận giải Cung Tử tức & Phúc đức, Mục 10: Tiên tri Sức khỏe & Các tai ương cần tránh.";
     } else if (stage === 3) {
-        stageGoals = `Mục 11: Tổng quan Vận hạn năm ${currentYear}, Mục 12: Chi tiết biến cố 12 tháng trong năm ${currentYear}, Mục 13: Lời khuyên Phong thủy & Phương pháp Cải vận.`;
+        stageGoals = `Mục 11: Tổng quan Vận hạn năm ${currentYear}, Mục 12: Chi tiết biến cố 4 quý trong năm ${currentYear} (Quý 1: tháng 1-3, Quý 2: tháng 4-6, Quý 3: tháng 7-9, Quý 4: tháng 10-12) - viết súc tích theo quý, Mục 13: Lời khuyên Phong thủy & Phương pháp Cải vận.`;
     } else if (stage === 'lucky') {
-        stageGoals = "Hãy tìm ra 6 con số may mắn nhất (từ 01 đến 55) dành cho gia chủ dựa trên ngày sinh và giới tính. Chỉ trả về đúng 6 con số, cách nhau bởi dấu phẩy.";
+        stageGoals = "Hãy tìm ra 6 con số may mắn nhất (từ 01 đến 55) dành cho gia chủ dựa trên ngày sinh và giới tính. Chỉ trả về đúng 6 con số, ví dụ: 05, 12, 28, 33, 45, 52. Tuyệt đối không viết gì thêm.";
     }
 
     const requestBody = {
@@ -288,7 +295,7 @@ function formatAIResponse(text) {
         "9": "Gia đạo, Cung Tử tức & Phúc đức",
         "10": "Tiên tri Sức khỏe & Tai ương",
         "11": "Tổng quan Vận hạn Năm hiện tại",
-        "12": "Chi tiết Vận trình 12 tháng",
+        "12": "Diễn biến 4 Quý trong năm",
         "13": "Lời khuyên & Phương pháp Cải vận"
     };
 
