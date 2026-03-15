@@ -192,62 +192,44 @@ async function callGeminiAI(apiKey, data, stage) {
 
     const currentYear = new Date().getFullYear();
 
-    let stageInstructions = "";
     let stageGoals = "";
-
     if (stage === 1) {
-        stageInstructions = "Tập trung luận giải sâu sắc về bản mệnh và 2 bàn tay.";
-        stageGoals = `
-            [[PHAN_1]] TỔNG QUAN BẢN MỆNH & CỐT CÁCH
-            [[PHAN_2]] NGŨ HÀNH BẢN MỆNH & DỤNG THẦN
-            [[PHAN_3]] PHÂN TÍCH TÂM TÍNH & NĂNG LỰC THIÊN BẨM
-            [[PHAN_4]] LUẬN GIẢI CHI TIẾT CHỈ TAY TẢ (TAY TRÁI) - TIÊN THIÊN
-            [[PHAN_5]] LUẬN GIẢI CHI TIẾT CHỈ TAY HỮU (TAY PHẢI) - HẬU THIÊN
-        `;
+        stageGoals = "Mục 1: Tổng quan Bản mệnh & Cốt cách, Mục 2: Ngũ hành & Dụng thần, Mục 3: Tâm tính & Năng lực Thiên bẩm, Mục 4: Luận giải Chỉ tay Tả (Trái) - Tiên thiên, Mục 5: Luận giải Chỉ tay Hữu (Phải) - Hậu thiên.";
     } else if (stage === 2) {
-        stageInstructions = "Tập trung luận giải về sự nghiệp, tiền tài và các mối quan hệ.";
-        stageGoals = `
-            [[PHAN_6]] CON ĐƯỜNG CÔNG DANH & SỰ NGHIỆP TRỌN ĐỜI
-            [[PHAN_7]] CUNG TÀI BẠCH & VẬN MAY TIỀN BẠC
-            [[PHAN_8]] TÌNH DUYÊN, HÔN NHÂN & PHU THÊ
-            [[PHAN_9]] GIA ĐẠO, LUẬN GIẢI CUNG TỬ TỨC & PHÚC ĐỨC
-            [[PHAN_10]] TIÊN TRI SỨC KHỎE & CÁC TAI ƯƠNG CẦN TRÁNH
-        `;
+        stageGoals = "Mục 6: Con đường Công danh & Sự nghiệp Trực đời, Mục 7: Cung Tài bạch & Vận may Tiền bạc, Mục 8: Tình duyên, Hôn nhân & Phu thê, Mục 9: Gia đạo, Luận giải Cung Tử tức & Phúc đức, Mục 10: Tiên tri Sức khỏe & Các tai ương cần tránh.";
     } else {
-        stageInstructions = "Tập trung luận giải về vận hạn năm nay và lời khuyên cải vận.";
-        stageGoals = `
-            [[PHAN_11]] TỔNG QUAN VẬN HẠN TRONG NĂM ${currentYear}
-            [[PHAN_12]] CHI TIẾT BIẾN CỐ 12 THÁNG TRONG NĂM ${currentYear}
-            [[PHAN_13]] LỜI KHUYÊN PHONG THỦY & PHƯƠNG PHÁP CẢI VẬN Ý NGHĨA
-        `;
+        stageGoals = `Mục 11: Tổng quan Vận hạn năm ${currentYear}, Mục 12: Chi tiết biến cố 12 tháng trong năm ${currentYear}, Mục 13: Lời khuyên Phong thủy & Phương pháp Cải vận.`;
     }
 
     const requestBody = {
         system_instruction: {
             parts: [{
-                text: `Bạn là bậc thầy Nhân tướng học, Tử vi và Huyền học Á Đông. 
-                NHIỆM VỤ: Viết TIẾP nội dung cho hồ sơ vận mệnh. 
-                ${stageInstructions}
+                text: `Bạn là bậc thầy Nhân tướng học và Tử vi. 
+                NHIỆM VỤ: Luận giải chi tiết các mục được yêu cầu.
                 QUY TẮC:
-                1. Bắt buộc mỗi phần phải có marker dạng: [[PHAN_X]] đúng theo danh sách yêu cầu.
-                2. Viết cực kỳ chi tiết, chuyên sâu, hành văn uyên bác.
-                3. Trình bày bằng Markdown đẹp mắt.` }]
+                1. Mỗi mục PHẢI bắt đầu bằng marker chính xác: [[PHAN_X]] (ví dụ: [[PHAN_1]], [[PHAN_2]]...).
+                2. Viết cực kỳ chi tiết, hành văn uyên bác, trang trọng.
+                3. Tuyệt đối không được bỏ sót bất kỳ mục nào được giao trong giai đoạn này.
+                4. Sử dụng Markdown (in đậm, gạch đầu dòng) để trình bày.`
+            }]
         },
         contents: [{
             parts: [
-                {
-                    text: `Gia chủ: ${data.fullName}, Sinh ngày: ${data.dob}, Giới tính: ${data.gender}. 
-                         Hãy thực hiện viết các phần sau:
-                         ${stageGoals}`
-                },
+                { text: `Gia chủ: ${data.fullName}, Ngày sinh: ${data.dob}, Giới tính: ${data.gender}. Hãy viết các mục sau: ${stageGoals}` },
                 { inline_data: { mime_type: "image/jpeg", data: data.images.left } },
                 { inline_data: { mime_type: "image/jpeg", data: data.images.right } }
             ]
         }],
         generationConfig: {
-            temperature: 0.75,
-            maxOutputTokens: 4096,
-        }
+            temperature: 0.7,
+            maxOutputTokens: 8192,
+        },
+        safetySettings: [
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+        ]
     };
 
     const response = await fetch(API_URL, {
@@ -268,54 +250,42 @@ async function callGeminiAI(apiKey, data, stage) {
 function formatAIResponse(text) {
     if (!text) return "";
 
-    // Bộ lọc đa năng nhận diện mọi kiểu marker (PHAN_X, SECTION_X, Mục X)
-    const splitter = /\[{1,2}(?:PHAN|SECTION|MUC|PHẦN)_\d+\]{1,2}|#+\s*\d+[\.\s\-]+|^\d+[\.\s\-]+/gim;
-    const parts = text.split(splitter);
-    const headers = text.match(splitter) || [];
+    const standardTitles = {
+        "1": "Tổng quan Bản mệnh & Cốt cách",
+        "2": "Ngũ hành & Dụng thần",
+        "3": "Tâm tính & Năng lực Thiên bẩm",
+        "4": "Luận giải Chỉ tay Tả (Trái) - Tiên thiên",
+        "5": "Luận giải Chỉ tay Hữu (Phải) - Hậu thiên",
+        "6": "Công danh & Sự nghiệp Trọn đời",
+        "7": "Cung Tài bạch & Vận may Tiền bạc",
+        "8": "Tình duyên, Hôn nhân & Phu thê",
+        "9": "Gia đạo, Cung Tử tức & Phúc đức",
+        "10": "Tiên tri Sức khỏe & Tai ương",
+        "11": "Tổng quan Vận hạn Năm hiện tại",
+        "12": "Chi tiết Vận trình 12 tháng",
+        "13": "Lời khuyên & Phương pháp Cải vận"
+    };
+
+    const markerRegex = /\[{2}PHAN_(\d+)\]{2}/gi;
+    const parts = text.split(markerRegex);
 
     let html = "";
 
-    // Hiển thị intro
-    if (parts[0] && parts[0].trim().length > 10) {
+    if (parts[0] && parts[0].trim().length > 20) {
         html += `<div class="intro-box">${processMarkdown(parts[0].trim())}</div>`;
     }
 
-    // Nếu AI viết liền một mạch, hiển thị toàn bộ
-    if (parts.length <= 1) {
-        return `<div class="result-section-item"><h2>Kết Quả Luận Giải Chi Tiết</h2>${processMarkdown(text)}</div>`;
-    }
+    for (let i = 1; i < parts.length; i += 2) {
+        const index = parts[i];
+        let content = parts[i + 1] ? parts[i + 1].trim() : "";
 
-    const standardTitles = [
-        "Tổng quan Bản mệnh & Cốt cách",
-        "Ngũ hành & Dụng thần",
-        "Tâm tính & Năng lực Thiên bẩm",
-        "Luận giải Chỉ tay Tả (Trái)",
-        "Luận giải Chỉ tay Hữu (Phải)",
-        "Công danh & Sự nghiệp Trọn đời",
-        "Cung Tài bạch & Tiền bạc",
-        "Tình duyên & Hôn nhân",
-        "Gia đạo & Phúc đức",
-        "Sức khỏe & Tai ương",
-        "Vận hạn Năm hiện tại",
-        "Vận trình 12 tháng chi tiết",
-        "Lời khuyên & Phương pháp Cải vận"
-    ];
+        if (!content) continue;
 
-    for (let i = 1; i < parts.length; i++) {
-        let content = parts[i].trim();
-        if (!content || content.length < 5) continue;
-
-        let title = standardTitles[i - 1] || `Phân tích mục ${i}`;
-
-        // Làm sạch nội dung (loại bỏ dòng tiêu đề lặp lại nếu AI tự viết thêm)
-        const lines = content.split('\n');
-        if (lines[0].length < 100 && lines[0].includes(title.substring(0, 5))) {
-            content = lines.slice(1).join('\n').trim();
-        }
+        const title = standardTitles[index] || `Phân tích chuyên sâu mục ${index}`;
 
         html += `
-            <div class="result-section-item section-anim-${i % 9}">
-                <div class="section-badge">Mục ${i}</div>
+            <div class="result-section-item section-anim-${index % 9}">
+                <div class="section-badge">Mục ${index}</div>
                 <h2>${title}</h2>
                 <div class="section-content">
                     ${processMarkdown(content)}
@@ -324,7 +294,7 @@ function formatAIResponse(text) {
         `;
     }
 
-    return html;
+    return html || `<div class="result-section-item"><h2>Kết Quả Phân Tích</h2>${processMarkdown(text)}</div>`;
 }
 
 function processMarkdown(text) {
