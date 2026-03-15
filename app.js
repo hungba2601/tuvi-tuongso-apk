@@ -359,42 +359,58 @@ function processMarkdown(text) {
 // Download functionality
 document.getElementById('download-btn').addEventListener('click', () => {
     const aiResponseDiv = document.getElementById('ai-response');
-    const fullName = document.getElementById('full-name').value.trim() || "Khach_Hang";
+    const fullNameRaw = document.getElementById('full-name').value.trim() || "Khach_Hang";
+    // Remove Vietnamese accents for filename
+    const fullName = fullNameRaw.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D");
 
-    // Create a styled HTML content for Word
+    // Create a styled HTML content for Word with specific meta for compatibility
     const htmlContent = `
         <!DOCTYPE html>
-        <html>
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
         <head>
             <meta charset="utf-8">
+            <title>Ket Qua Luan Giai</title>
+            <!--[if gte mso 9]>
+            <xml>
+                <w:WordDocument>
+                    <w:View>Print</w:View>
+                    <w:Zoom>100</w:Zoom>
+                    <w:DoNotOptimizeForBrowser/>
+                </w:WordDocument>
+            </xml>
+            <![endif]-->
             <style>
-                body { font-family: 'Times New Roman', serif; line-height: 1.6; }
+                body { font-family: 'Times New Roman', serif; line-height: 1.6; color: #000; }
                 header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
-                h1 { color: #2c3e50; font-size: 24pt; margin-bottom: 5px; }
-                h2 { color: #e67e22; font-size: 18pt; border-left: 5px solid #e67e22; padding-left: 10px; margin-top: 25px; }
-                p { margin-bottom: 10px; font-size: 12pt; text-align: justify; }
+                h1 { color: #2c3e50; font-size: 20pt; margin-bottom: 5px; }
+                h2 { color: #8e44ad; font-size: 16pt; margin-top: 20px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+                p { margin-bottom: 8px; font-size: 11pt; text-align: justify; }
                 ul { margin-bottom: 15px; }
-                li { margin-bottom: 5px; font-size: 12pt; }
-                .info { background: #f9f9f9; padding: 15px; border: 1px solid #ddd; margin-bottom: 20px; }
-                .result-section-item { margin-bottom: 30px; padding: 15px; border: 1px solid #eee; }
-                .section-badge { display: inline-block; background: #e67e22; color: white; padding: 2px 10px; border-radius: 15px; font-size: 10pt; font-weight: bold; margin-bottom: 10px; }
-                .footer { margin-top: 50px; text-align: center; font-style: italic; color: #7f8c8d; font-size: 10pt; }
+                li { margin-bottom: 5px; font-size: 11pt; }
+                .info { background: #fdfdfd; padding: 10px; border: 1px solid #ddd; margin-bottom: 20px; }
+                .result-section-item { margin-bottom: 25px; page-break-inside: avoid; }
+                .section-badge { font-weight: bold; color: #8e44ad; font-size: 10pt; }
+                .footer { margin-top: 40px; text-align: center; font-style: italic; color: #666; font-size: 9pt; border-top: 1px solid #eee; padding-top: 10px; }
+                strong { font-weight: bold; }
             </style>
         </head>
         <body>
             <header>
-                <h1>KẾT QUẢ LUẬN GIẢI TỬ VI & TƯỚNG SỐ</h1>
-                <p>Cung cấp bởi: TỬ VI & TƯỚNG SỐ AI</p>
+                <h1>KẾT QUẢ LUẬN GIẢI TỬ VI & TƯỚNG SỐ AI</h1>
+                <p>Hệ thống phân tích Nhân mệnh chuyên sâu</p>
             </header>
             
             <div class="info">
-                <p><strong>Họ và Tên:</strong> ${fullName}</p>
+                <p><strong>Gia chủ:</strong> ${fullNameRaw}</p>
                 <p><strong>Ngày sinh:</strong> ${document.getElementById('dob').value}</p>
                 <p><strong>Giới tính:</strong> ${document.getElementById('gender').value}</p>
                 <p><strong>Giờ sinh:</strong> ${document.getElementById('tob').value || "Không rõ"}</p>
+                <p><strong>Ngày lập quẻ:</strong> ${new Date().toLocaleDateString('vi-VN')}</p>
             </div>
 
-            ${aiResponseDiv.innerHTML}
+            <div class="content">
+                ${aiResponseDiv.innerHTML}
+            </div>
 
             <div class="footer">
                 <p>Bản quyền © ${new Date().getFullYear()} - Nguyễn Phi Hùng - Zalo 0938750424</p>
@@ -407,24 +423,39 @@ document.getElementById('download-btn').addEventListener('click', () => {
     // Convert HTML to Docx
     try {
         const converted = htmlDocx.asBlob(htmlContent);
-        const url = URL.createObjectURL(converted);
+        // Force the correct MIME type for DOCX - critical for mobile compatibility
+        const docxBlob = new Blob([converted], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+
+        const url = URL.createObjectURL(docxBlob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `Luan_Giai_Tu_Vi_${fullName.replace(/\s+/g, '_')}_${new Date().getTime()}.docx`;
+        const timestamp = new Date().getTime();
+        const safeFileName = `Luan_Giai_${fullName.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.docx`;
+
+        a.download = safeFileName;
         document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+
+        // Use a small delay before cleanup for mobile browsers
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 100);
+
     } catch (error) {
         console.error("Error generating DOCX:", error);
         // Fallback to text if library fails
         const content = aiResponseDiv.innerText;
-        const blob = new Blob([content], { type: 'text/plain' });
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `TuVi_Full_Report_${new Date().getTime()}.txt`;
+        a.download = `TuVi_Report_${new Date().getTime()}.txt`;
+        document.body.appendChild(a);
         a.click();
-        URL.revokeObjectURL(url);
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 100);
     }
 });
