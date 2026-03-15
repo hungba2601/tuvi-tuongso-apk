@@ -172,34 +172,45 @@ analyzeBtn.addEventListener('click', async () => {
 });
 
 async function callGeminiAI(apiKey, data) {
-    const MODEL_ID = "gemini-2.5-flash";
+    const MODEL_ID = "gemini-1.5-flash";
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${apiKey}`;
 
     const currentYear = new Date().getFullYear();
     const requestBody = {
         system_instruction: {
             parts: [{
-                text: `Bạn là bậc thầy Nhân tướng học và Huyền học Á Đông. 
-            NHIỆM VỤ: Lập hồ sơ vận mệnh gồm ĐÚNG 8 PHẦN. 
-            QUY TẮC: 
-            1. Mỗi phần bắt đầu bằng marker: [[PHAN_X]] (X từ 1 đến 8).
-            2. Viết chi tiết, chuyên sâu nhưng súc tích (khoảng 300-400 chữ/phần) để đảm bảo không bị ngắt quãng nửa chừng.
-            3. Tuyệt đối không dừng lại cho đến khi viết xong [[PHAN_8]].` }]
+                text: `Bạn là bậc thầy Nhân tướng học, Tử vi và Huyền học Á Đông với 30 năm kinh nghiệm. 
+                NHIỆM VỤ: Lập hồ sơ vận mệnh đại luận giải gồm CHÍNH XÁC 13 PHẦN. 
+                QUY TẮC NGHIÊM NGẶT:
+                1. Bắt buộc mỗi phần phải có marker dạng: [[PHAN_X]] (X từ 1 đến 13). Không bao giờ được bỏ marker.
+                2. Viết cực kỳ chi tiết, chuyên sâu, mỗi mục khoảng 200-250 chữ.
+                3. Tuyệt đối không được dừng lại cho đến khi hoàn thành đến [[PHAN_13]].
+                4. Sử dụng ngôn ngữ trang trọng, uyên bác nhưng dễ hiểu.
+                5. Sử dụng Markdown để trình bày đẹp (gạch đầu dòng, in đậm).` }]
         },
         contents: [{
             parts: [
                 {
-                    text: `Lập đại luận giải vận mệnh cho: ${data.fullName}, sinh ngày: ${data.dob}, giới tính: ${data.gender}.
-                
-                DANH SÁCH 8 PHẦN CẦN HOÀN THÀNH:
-                [[PHAN_1]] TỔNG QUAN BẢN MỆNH & NGŨ HÀNH
-                [[PHAN_2]] PHÂN TÍCH CHI TIẾT TỪNG LỚI CHỈ TAY
-                [[SECTION_3]] CON ĐƯỜNG QUAN LỘ & SỰ NGHIỆP
-                [[PHAN_4]] TÌNH DUYÊN, GIA ĐẠO & NHÂN DUYÊN
-                [[PHAN_5]] TIÊN TRI SỨC KHỎE THEO NHÂN TƯỚNG
-                [[PHAN_6]] TỔNG QUAN VẬN HẠN NĂM ${currentYear}
-                [[PHAN_7]] CHI TIẾT BIẾN CỐ 12 THÁNG TRONG NĂM ${currentYear}
-                [[PHAN_8]] PHƯƠNG PHÁP CẢI VẬN & LỜI KHUYÊN PHONG THỦY` },
+                    text: `Hãy lập đại luận giải vận mệnh trọn đời và vận hạn năm ${currentYear} cho gia chủ:
+                    - Họ và Tên: ${data.fullName}
+                    - Ngày sinh: ${data.dob}
+                    - Giới tính: ${data.gender}
+                    - Giờ sinh: ${data.tob || "Không rõ"}
+
+                    HÀNH TRÌNH LUẬN GIẢI 13 PHẦN BẮT BUỘC:
+                    [[PHAN_1]] TỔNG QUAN BẢN MỆNH & CỐT CÁCH
+                    [[PHAN_2]] NGŨ HÀNH BẢN MỆNH & DỤNG THẦN
+                    [[PHAN_3]] PHÂN TÍCH TÂM TÍNH & NĂNG LỰC THIÊN BẨM
+                    [[PHAN_4]] LUẬN GIẢI CHỈ TAY TẢ (TAY TRÁI) - TIÊN THIÊN
+                    [[PHAN_5]] LUẬN GIẢI CHỈ TAY HỮU (TAY PHẢI) - HẬU THIÊN
+                    [[PHAN_6]] CON ĐƯỜNG CÔNG DANH & SỰ NGHIỆP TRỌN ĐỜI
+                    [[PHAN_7]] CUNG TÀI BẠCH & VẬN MAY TIỀN BẠC
+                    [[PHAN_8]] TÌNH DUYÊN, HÔN NHÂN & PHU THÊ
+                    [[PHAN_9]] GIA ĐẠO, LUẬN GIẢI CUNG TỬ TỨC & PHÚC ĐỨC
+                    [[PHAN_10]] TIÊN TRI SỨC KHỎE & CÁC TAI ƯƠNG CẦN TRÁNH
+                    [[PHAN_11]] TỔNG QUAN VẬN HẠN TRONG NĂM ${currentYear}
+                    [[PHAN_12]] CHI TIẾT BIẾN CỐ 12 THÁNG TRONG NĂM ${currentYear}
+                    [[PHAN_13]] LỜI KHUYÊN PHONG THỦY & PHƯƠNG PHÁP CẢI VẬN Ý NGHĨA` },
                 { inline_data: { mime_type: "image/jpeg", data: data.images.left } },
                 { inline_data: { mime_type: "image/jpeg", data: data.images.right } }
             ]
@@ -255,14 +266,19 @@ function formatAIResponse(text) {
     }
 
     const standardTitles = [
-        "Tổng Quan Bản Mệnh",
-        "Phân Tích Chỉ Tay",
-        "Sự Nghiệp & Tài Lộc",
-        "Tình Duyên & Gia Đạo",
-        "Tiên Tri Sức Khỏe",
-        "Vận Hạn Năm Hiện Tại",
-        "Chi Tiết 12 Tháng",
-        "Lời Khuyên Phong Thủy"
+        "Tổng quan Bản mệnh & Cốt cách",
+        "Ngũ hành & Dụng thần",
+        "Tâm tính & Năng lực Thiên bẩm",
+        "Luận giải Chỉ tay Tả (Trái)",
+        "Luận giải Chỉ tay Hữu (Phải)",
+        "Công danh & Sự nghiệp Trọn đời",
+        "Cung Tài bạch & Tiền bạc",
+        "Tình duyên & Hôn nhân",
+        "Gia đạo & Phúc đức",
+        "Sức khỏe & Tai ương",
+        "Vận hạn Năm hiện tại",
+        "Vận trình 12 tháng chi tiết",
+        "Lời khuyên & Phương pháp Cải vận"
     ];
 
     for (let i = 1; i < parts.length; i++) {
@@ -312,12 +328,72 @@ function processMarkdown(text) {
 // Download functionality
 document.getElementById('download-btn').addEventListener('click', () => {
     const aiResponseDiv = document.getElementById('ai-response');
-    const content = aiResponseDiv.innerText;
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `TuVi_Full_Report_${new Date().getTime()}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const fullName = document.getElementById('full-name').value.trim() || "Khach_Hang";
+
+    // Create a styled HTML content for Word
+    const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <style>
+                body { font-family: 'Times New Roman', serif; line-height: 1.6; }
+                header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+                h1 { color: #2c3e50; font-size: 24pt; margin-bottom: 5px; }
+                h2 { color: #e67e22; font-size: 18pt; border-left: 5px solid #e67e22; padding-left: 10px; margin-top: 25px; }
+                p { margin-bottom: 10px; font-size: 12pt; text-align: justify; }
+                ul { margin-bottom: 15px; }
+                li { margin-bottom: 5px; font-size: 12pt; }
+                .info { background: #f9f9f9; padding: 15px; border: 1px solid #ddd; margin-bottom: 20px; }
+                .result-section-item { margin-bottom: 30px; padding: 15px; border: 1px solid #eee; }
+                .section-badge { display: inline-block; background: #e67e22; color: white; padding: 2px 10px; border-radius: 15px; font-size: 10pt; font-weight: bold; margin-bottom: 10px; }
+                .footer { margin-top: 50px; text-align: center; font-style: italic; color: #7f8c8d; font-size: 10pt; }
+            </style>
+        </head>
+        <body>
+            <header>
+                <h1>KẾT QUẢ LUẬN GIẢI TỬ VI & TƯỚNG SỐ</h1>
+                <p>Cung cấp bởi: TỬ VI & TƯỚNG SỐ AI</p>
+            </header>
+            
+            <div class="info">
+                <p><strong>Họ và Tên:</strong> ${fullName}</p>
+                <p><strong>Ngày sinh:</strong> ${document.getElementById('dob').value}</p>
+                <p><strong>Giới tính:</strong> ${document.getElementById('gender').value}</p>
+                <p><strong>Giờ sinh:</strong> ${document.getElementById('tob').value || "Không rõ"}</p>
+            </div>
+
+            ${aiResponseDiv.innerHTML}
+
+            <div class="footer">
+                <p>Bản quyền © ${new Date().getFullYear()} - Nguyễn Phi Hùng - Zalo 0938750424</p>
+                <p>Thông tin chỉ mang tính chất tham khảo chiêm nghiệm.</p>
+            </div>
+        </body>
+        </html>
+    `;
+
+    // Convert HTML to Docx
+    try {
+        const converted = htmlDocx.asBlob(htmlContent);
+        const url = URL.createObjectURL(converted);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Luan_Giai_Tu_Vi_${fullName.replace(/\s+/g, '_')}_${new Date().getTime()}.docx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error("Error generating DOCX:", error);
+        // Fallback to text if library fails
+        const content = aiResponseDiv.innerText;
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `TuVi_Full_Report_${new Date().getTime()}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
 });
