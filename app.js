@@ -127,7 +127,7 @@ document.querySelectorAll('.remove-btn').forEach(btn => {
     });
 });
 
-// Analysis Logic
+// Enhanced Analysis Logic with Chaining
 analyzeBtn.addEventListener('click', async () => {
     const apiKey = localStorage.getItem('gemini_api_key');
     if (!apiKey) {
@@ -152,79 +152,102 @@ analyzeBtn.addEventListener('click', async () => {
     }
 
     loadingOverlay.classList.remove('hidden');
+    const loadingText = loadingOverlay.querySelector('p');
     resultSection.classList.add('hidden');
+    aiResponseDiv.innerHTML = ""; // Reset previous results
 
     try {
-        const result = await callGeminiAI(apiKey, {
-            fullName, dob, gender, tob,
-            images: palmImages
-        });
+        let fullResult = "";
 
-        aiResponseDiv.innerHTML = formatAIResponse(result);
+        // Stage 1: Core Identity & Palms (Sections 1-5)
+        loadingText.innerText = "Đang giải mã bản mệnh và chỉ tay (1/3)...";
+        const res1 = await callGeminiAI(apiKey, { fullName, dob, gender, tob, images: palmImages }, 1);
+        fullResult += res1 + "\n";
+
+        // Stage 2: Life Path & Relations (Sections 6-10)
+        loadingText.innerText = "Đang luận giải quan lộ và nhân duyên (2/3)...";
+        const res2 = await callGeminiAI(apiKey, { fullName, dob, gender, tob, images: palmImages }, 2);
+        fullResult += res2 + "\n";
+
+        // Stage 3: Current Year & Advice (Sections 11-13)
+        loadingText.innerText = "Đang tiên tri vận hạn và lời khuyên (3/3)...";
+        const res3 = await callGeminiAI(apiKey, { fullName, dob, gender, tob, images: palmImages }, 3);
+        fullResult += res3;
+
+        aiResponseDiv.innerHTML = formatAIResponse(fullResult);
         resultSection.classList.remove('hidden');
         resultSection.scrollIntoView({ behavior: 'smooth' });
     } catch (error) {
         console.error(error);
-        alert('Có lỗi xảy ra khi phân tích: ' + error.message);
+        alert('Có lỗi xảy ra: ' + error.message);
     } finally {
         loadingOverlay.classList.add('hidden');
+        loadingText.innerText = "Đang giải mã bí mật của các vì sao...";
     }
 });
 
-async function callGeminiAI(apiKey, data) {
-    const MODEL_ID = "gemini-1.5-flash";
+async function callGeminiAI(apiKey, data, stage) {
+    const MODEL_ID = "gemini-2.5-flash";
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${apiKey}`;
 
     const currentYear = new Date().getFullYear();
+
+    let stageInstructions = "";
+    let stageGoals = "";
+
+    if (stage === 1) {
+        stageInstructions = "Tập trung luận giải sâu sắc về bản mệnh và 2 bàn tay.";
+        stageGoals = `
+            [[PHAN_1]] TỔNG QUAN BẢN MỆNH & CỐT CÁCH
+            [[PHAN_2]] NGŨ HÀNH BẢN MỆNH & DỤNG THẦN
+            [[PHAN_3]] PHÂN TÍCH TÂM TÍNH & NĂNG LỰC THIÊN BẨM
+            [[PHAN_4]] LUẬN GIẢI CHI TIẾT CHỈ TAY TẢ (TAY TRÁI) - TIÊN THIÊN
+            [[PHAN_5]] LUẬN GIẢI CHI TIẾT CHỈ TAY HỮU (TAY PHẢI) - HẬU THIÊN
+        `;
+    } else if (stage === 2) {
+        stageInstructions = "Tập trung luận giải về sự nghiệp, tiền tài và các mối quan hệ.";
+        stageGoals = `
+            [[PHAN_6]] CON ĐƯỜNG CÔNG DANH & SỰ NGHIỆP TRỌN ĐỜI
+            [[PHAN_7]] CUNG TÀI BẠCH & VẬN MAY TIỀN BẠC
+            [[PHAN_8]] TÌNH DUYÊN, HÔN NHÂN & PHU THÊ
+            [[PHAN_9]] GIA ĐẠO, LUẬN GIẢI CUNG TỬ TỨC & PHÚC ĐỨC
+            [[PHAN_10]] TIÊN TRI SỨC KHỎE & CÁC TAI ƯƠNG CẦN TRÁNH
+        `;
+    } else {
+        stageInstructions = "Tập trung luận giải về vận hạn năm nay và lời khuyên cải vận.";
+        stageGoals = `
+            [[PHAN_11]] TỔNG QUAN VẬN HẠN TRONG NĂM ${currentYear}
+            [[PHAN_12]] CHI TIẾT BIẾN CỐ 12 THÁNG TRONG NĂM ${currentYear}
+            [[PHAN_13]] LỜI KHUYÊN PHONG THỦY & PHƯƠNG PHÁP CẢI VẬN Ý NGHĨA
+        `;
+    }
+
     const requestBody = {
         system_instruction: {
             parts: [{
-                text: `Bạn là bậc thầy Nhân tướng học, Tử vi và Huyền học Á Đông với 30 năm kinh nghiệm. 
-                NHIỆM VỤ: Lập hồ sơ vận mệnh đại luận giải gồm CHÍNH XÁC 13 PHẦN. 
-                QUY TẮC NGHIÊM NGẶT:
-                1. Bắt buộc mỗi phần phải có marker dạng: [[PHAN_X]] (X từ 1 đến 13). Không bao giờ được bỏ marker.
-                2. Viết cực kỳ chi tiết, chuyên sâu, mỗi mục khoảng 200-250 chữ.
-                3. Tuyệt đối không được dừng lại cho đến khi hoàn thành đến [[PHAN_13]].
-                4. Sử dụng ngôn ngữ trang trọng, uyên bác nhưng dễ hiểu.
-                5. Sử dụng Markdown để trình bày đẹp (gạch đầu dòng, in đậm).` }]
+                text: `Bạn là bậc thầy Nhân tướng học, Tử vi và Huyền học Á Đông. 
+                NHIỆM VỤ: Viết TIẾP nội dung cho hồ sơ vận mệnh. 
+                ${stageInstructions}
+                QUY TẮC:
+                1. Bắt buộc mỗi phần phải có marker dạng: [[PHAN_X]] đúng theo danh sách yêu cầu.
+                2. Viết cực kỳ chi tiết, chuyên sâu, hành văn uyên bác.
+                3. Trình bày bằng Markdown đẹp mắt.` }]
         },
         contents: [{
             parts: [
                 {
-                    text: `Hãy lập đại luận giải vận mệnh trọn đời và vận hạn năm ${currentYear} cho gia chủ:
-                    - Họ và Tên: ${data.fullName}
-                    - Ngày sinh: ${data.dob}
-                    - Giới tính: ${data.gender}
-                    - Giờ sinh: ${data.tob || "Không rõ"}
-
-                    HÀNH TRÌNH LUẬN GIẢI 13 PHẦN BẮT BUỘC:
-                    [[PHAN_1]] TỔNG QUAN BẢN MỆNH & CỐT CÁCH
-                    [[PHAN_2]] NGŨ HÀNH BẢN MỆNH & DỤNG THẦN
-                    [[PHAN_3]] PHÂN TÍCH TÂM TÍNH & NĂNG LỰC THIÊN BẨM
-                    [[PHAN_4]] LUẬN GIẢI CHỈ TAY TẢ (TAY TRÁI) - TIÊN THIÊN
-                    [[PHAN_5]] LUẬN GIẢI CHỈ TAY HỮU (TAY PHẢI) - HẬU THIÊN
-                    [[PHAN_6]] CON ĐƯỜNG CÔNG DANH & SỰ NGHIỆP TRỌN ĐỜI
-                    [[PHAN_7]] CUNG TÀI BẠCH & VẬN MAY TIỀN BẠC
-                    [[PHAN_8]] TÌNH DUYÊN, HÔN NHÂN & PHU THÊ
-                    [[PHAN_9]] GIA ĐẠO, LUẬN GIẢI CUNG TỬ TỨC & PHÚC ĐỨC
-                    [[PHAN_10]] TIÊN TRI SỨC KHỎE & CÁC TAI ƯƠNG CẦN TRÁNH
-                    [[PHAN_11]] TỔNG QUAN VẬN HẠN TRONG NĂM ${currentYear}
-                    [[PHAN_12]] CHI TIẾT BIẾN CỐ 12 THÁNG TRONG NĂM ${currentYear}
-                    [[PHAN_13]] LỜI KHUYÊN PHONG THỦY & PHƯƠNG PHÁP CẢI VẬN Ý NGHĨA` },
+                    text: `Gia chủ: ${data.fullName}, Sinh ngày: ${data.dob}, Giới tính: ${data.gender}. 
+                         Hãy thực hiện viết các phần sau:
+                         ${stageGoals}`
+                },
                 { inline_data: { mime_type: "image/jpeg", data: data.images.left } },
                 { inline_data: { mime_type: "image/jpeg", data: data.images.right } }
             ]
         }],
         generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 8192,
-        },
-        safetySettings: [
-            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-        ]
+            temperature: 0.75,
+            maxOutputTokens: 4096,
+        }
     };
 
     const response = await fetch(API_URL, {
@@ -239,9 +262,6 @@ async function callGeminiAI(apiKey, data) {
     }
 
     const json = await response.json();
-    if (!json.candidates || !json.candidates[0].content) {
-        throw new Error('AI không phản hồi. Hãy thử lại.');
-    }
     return json.candidates[0].content.parts[0].text;
 }
 
