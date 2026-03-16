@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tuvi-ai-v1';
+const CACHE_NAME = 'tuvi-ai-v2';
 const assets = [
     './',
     './index.html',

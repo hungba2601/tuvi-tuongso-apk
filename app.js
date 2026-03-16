@@ -358,75 +358,136 @@ function processMarkdown(text) {
         .replace(/(<li>.*?<\/li>)+/gs, '<ul>$&</ul>');
 }
 
-// Download functionality
-document.getElementById('download-btn').addEventListener('click', () => {
+// Download functionality using docx.js for maximum mobile compatibility
+document.getElementById('download-btn').addEventListener('click', async () => {
+    const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType, Spacing } = window.docx;
+
     const aiResponseDiv = document.getElementById('ai-response');
     const fullNameRaw = document.getElementById('full-name').value.trim() || "Khach_Hang";
     // Remove Vietnamese accents for filename
     const fullName = fullNameRaw.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D");
 
-    // Create a styled HTML content for Word with specific meta for compatibility
-    const htmlContent = `
-        <!DOCTYPE html>
-        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-        <head>
-            <meta charset="utf-8">
-            <title>Ket Qua Luan Giai</title>
-            <!--[if gte mso 9]>
-            <xml>
-                <w:WordDocument>
-                    <w:View>Print</w:View>
-                    <w:Zoom>100</w:Zoom>
-                    <w:DoNotOptimizeForBrowser/>
-                </w:WordDocument>
-            </xml>
-            <![endif]-->
-            <style>
-                body { font-family: 'Times New Roman', serif; line-height: 1.6; color: #000; }
-                header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
-                h1 { color: #2c3e50; font-size: 20pt; margin-bottom: 5px; }
-                h2 { color: #8e44ad; font-size: 16pt; margin-top: 20px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-                p { margin-bottom: 8px; font-size: 11pt; text-align: justify; }
-                ul { margin-bottom: 15px; }
-                li { margin-bottom: 5px; font-size: 11pt; }
-                .info { background: #fdfdfd; padding: 10px; border: 1px solid #ddd; margin-bottom: 20px; }
-                .result-section-item { margin-bottom: 25px; page-break-inside: avoid; }
-                .section-badge { font-weight: bold; color: #8e44ad; font-size: 10pt; }
-                .footer { margin-top: 40px; text-align: center; font-style: italic; color: #666; font-size: 9pt; border-top: 1px solid #eee; padding-top: 10px; }
-                strong { font-weight: bold; }
-            </style>
-        </head>
-        <body>
-            <header>
-                <h1>KẾT QUẢ LUẬN GIẢI TỬ VI & TƯỚNG SỐ AI</h1>
-                <p>Hệ thống phân tích Nhân mệnh chuyên sâu</p>
-            </header>
-            
-            <div class="info">
-                <p><strong>Gia chủ:</strong> ${fullNameRaw}</p>
-                <p><strong>Ngày sinh:</strong> ${document.getElementById('dob').value}</p>
-                <p><strong>Giới tính:</strong> ${document.getElementById('gender').value}</p>
-                <p><strong>Giờ sinh:</strong> ${document.getElementById('tob').value || "Không rõ"}</p>
-                <p><strong>Ngày lập quẻ:</strong> ${new Date().toLocaleDateString('vi-VN')}</p>
-            </div>
-
-            <div class="content">
-                ${aiResponseDiv.innerHTML}
-            </div>
-
-            <div class="footer">
-                <p>Bản quyền © ${new Date().getFullYear()} - Nguyễn Phi Hùng - Zalo 0938750424</p>
-                <p>Thông tin chỉ mang tính chất tham khảo chiêm nghiệm.</p>
-            </div>
-        </body>
-        </html>
-    `;
-
-    // Convert HTML to Docx
     try {
-        const converted = htmlDocx.asBlob(htmlContent);
-        // Force the correct MIME type for DOCX - critical for mobile compatibility
-        const docxBlob = new Blob([converted], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+        const sections = [];
+
+        // 1. Header
+        sections.push(new Paragraph({
+            text: "KẾT QUẢ LUẬN GIẢI TỬ VI & TƯỚNG SỐ AI",
+            heading: HeadingLevel.HEADING_1,
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 200 },
+        }));
+        sections.push(new Paragraph({
+            text: "Hệ thống phân tích Nhân mệnh chuyên sâu",
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 400 },
+        }));
+
+        // 2. Info Box (using a simple Table for better look in Word)
+        const infoData = [
+            ["Gia chủ:", fullNameRaw],
+            ["Ngày sinh:", document.getElementById('dob').value],
+            ["Giới tính:", document.getElementById('gender').value],
+            ["Giờ sinh:", document.getElementById('tob').value || "Không rõ"],
+            ["Ngày lập quẻ:", new Date().toLocaleDateString('vi-VN')]
+        ];
+
+        const infoTable = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: infoData.map(row => new TableRow({
+                children: [
+                    new TableCell({
+                        children: [new Paragraph({ children: [new TextRun({ text: row[0], bold: true })] })],
+                        width: { size: 30, type: WidthType.PERCENTAGE },
+                    }),
+                    new TableCell({
+                        children: [new Paragraph({ text: row[1] })],
+                        width: { size: 70, type: WidthType.PERCENTAGE },
+                    }),
+                ],
+            })),
+        });
+        sections.push(infoTable);
+        sections.push(new Paragraph({ text: "", spacing: { after: 400 } }));
+
+        // 3. Main Content - Parse the aiResponseDiv categories
+        const contentItems = aiResponseDiv.querySelectorAll('.result-section-item');
+
+        if (contentItems.length > 0) {
+            contentItems.forEach(item => {
+                const badge = item.querySelector('.section-badge')?.innerText || "";
+                const title = item.querySelector('h2')?.innerText || "";
+                const contentDiv = item.querySelector('.section-content');
+
+                if (badge || title) {
+                    sections.push(new Paragraph({
+                        children: [
+                            new TextRun({ text: badge + " ", bold: true, color: "8e44ad" }),
+                            new TextRun({ text: title, bold: true, size: 28 })
+                        ],
+                        heading: HeadingLevel.HEADING_2,
+                        spacing: { before: 400, after: 200 },
+                        border: { bottom: { color: "eeeeee", space: 1, style: BorderStyle.SINGLE, size: 6 } }
+                    }));
+                }
+
+                if (contentDiv) {
+                    // Parse children of contentDiv (p, ul/li)
+                    Array.from(contentDiv.children).forEach(child => {
+                        if (child.tagName === 'P') {
+                            sections.push(new Paragraph({
+                                text: child.innerText,
+                                spacing: { after: 120 },
+                                alignment: AlignmentType.JUSTIFY
+                            }));
+                        } else if (child.tagName === 'UL') {
+                            Array.from(child.children).forEach(li => {
+                                sections.push(new Paragraph({
+                                    text: li.innerText,
+                                    bullet: { level: 0 },
+                                    spacing: { after: 80 }
+                                }));
+                            });
+                        }
+                    });
+                }
+            });
+        } else {
+            // Fallback if structure is different (e.g. intro text)
+            sections.push(new Paragraph({
+                text: aiResponseDiv.innerText,
+                spacing: { after: 200 }
+            }));
+        }
+
+        // 4. Footer
+        sections.push(new Paragraph({ text: "", spacing: { before: 800 } }));
+        sections.push(new Paragraph({
+            children: [
+                new TextRun({ text: `Bản quyền © ${new Date().getFullYear()} - Nguyễn Phi Hùng - Zalo 0938750424`, italics: true }),
+            ],
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 200 }
+        }));
+        sections.push(new Paragraph({
+            text: "Thông tin chỉ mang tính chất tham khảo chiêm nghiệm.",
+            alignment: AlignmentType.CENTER,
+            style: { size: 18 }
+        }));
+
+        // Create Document
+        const doc = new Document({
+            sections: [{
+                properties: {},
+                children: sections,
+            }],
+        });
+
+        // Generate Blob and download
+        const blob = await Packer.toBlob(doc);
+
+        // Final sanity check on MIME type (though docx library sets it correctly)
+        const docxBlob = new Blob([blob], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
 
         const url = URL.createObjectURL(docxBlob);
         const a = document.createElement('a');
@@ -438,15 +499,16 @@ document.getElementById('download-btn').addEventListener('click', () => {
         document.body.appendChild(a);
         a.click();
 
-        // Use a small delay before cleanup for mobile browsers
         setTimeout(() => {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-        }, 100);
+        }, 200);
 
     } catch (error) {
-        console.error("Error generating DOCX:", error);
-        // Fallback to text if library fails
+        console.error("Error generating DOCX with docx.js:", error);
+        alert("Lỗi khi tạo file Word. Đang tải file văn bản thay thế...");
+
+        // Fallback to text
         const content = aiResponseDiv.innerText;
         const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
         const url = URL.createObjectURL(blob);
