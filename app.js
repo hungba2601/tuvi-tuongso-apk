@@ -151,46 +151,89 @@ analyzeBtn.addEventListener('click', async () => {
         return;
     }
 
+    // Show Loading
     loadingOverlay.classList.remove('hidden');
-    const loadingText = loadingOverlay.querySelector('p');
+    const loadingText = document.getElementById('loading-main-text');
+    const statusList = document.getElementById('loading-status-list');
     resultSection.classList.add('hidden');
     aiResponseDiv.innerHTML = ""; // Reset previous results
+
+    // Initialize status list
+    const luckyRadio = document.querySelector('input[name="lucky-num-type"]:checked');
+    const luckyMax = luckyRadio ? luckyRadio.value : null;
+
+    const steps = [
+        "Kiểm tra kết nối tâm linh",
+        "Giải mã bản mệnh & chỉ tay (Bước 1)",
+        "Luận giải quan lộ & nhân duyên (Bước 2)",
+        "Tiên tri vận hạn & lời khuyên (Bước 3)"
+    ];
+    if (luckyMax) steps.push("Xem con số may mắn cho gia chủ");
+
+    statusList.innerHTML = steps.map((step, i) => `
+        <div class="status-item" id="status-step-${i}">
+            <i class="far fa-circle"></i>
+            <span>${step}</span>
+        </div>
+    `).join('');
+
+    const updateStatus = (index, status) => {
+        const item = document.getElementById(`status-step-${index}`);
+        if (!item) return;
+        const icon = item.querySelector('i');
+        if (status === 'active') {
+            item.className = 'status-item active';
+            icon.className = 'fas fa-spinner fa-spin';
+        } else if (status === 'completed') {
+            item.className = 'status-item completed';
+            icon.className = 'fas fa-check-circle';
+        } else if (status === 'error') {
+            item.className = 'status-item error';
+            icon.className = 'fas fa-exclamation-circle';
+        }
+    };
 
     try {
         let fullResult = "";
 
+        // Stage 0: Initial
+        updateStatus(0, 'active');
+        await new Promise(r => setTimeout(r, 800)); // Hơi delay chút cho user cảm nhận
+        updateStatus(0, 'completed');
+
         // Stage 1: Core Identity & Palms (Sections 1-5)
-        loadingText.innerText = "Đang giải mã bản mệnh và chỉ tay (1/3)...";
+        updateStatus(1, 'active');
+        loadingText.innerText = "Đang thẩm thấu thông tin nhân tướng...";
         const res1 = await callGeminiAI(apiKey, { fullName, dob, gender, tob, images: palmImages }, 1);
         fullResult += res1 + "\n";
+        updateStatus(1, 'completed');
 
         // Stage 2: Life Path & Relations (Sections 6-10)
-        loadingText.innerText = "Đang luận giải quan lộ và nhân duyên (2/3)...";
+        updateStatus(2, 'active');
+        loadingText.innerText = "Đang soi rọi đường công danh, tài lộc...";
         const res2 = await callGeminiAI(apiKey, { fullName, dob, gender, tob, images: palmImages }, 2);
         fullResult += res2 + "\n";
+        updateStatus(2, 'completed');
 
         // Stage 3: Current Year & Advice (Sections 11-13)
-        loadingText.innerText = "Đang tiên tri vận hạn và lời khuyên (3/3)...";
+        updateStatus(3, 'active');
+        loadingText.innerText = "Đang bói quẻ vận hạn năm nay...";
         const res3 = await callGeminiAI(apiKey, { fullName, dob, gender, tob, images: palmImages }, 3);
         fullResult += res3;
+        updateStatus(3, 'completed');
 
         aiResponseDiv.innerHTML = formatAIResponse(fullResult);
         resultSection.classList.remove('hidden');
 
-        // Stage Extra: Separate Lucky Numbers (Handle at the end or in parallel)
-        const luckyRadio = document.querySelector('input[name="lucky-num-type"]:checked');
-        const luckyMax = luckyRadio ? luckyRadio.value : null;
-        const luckySection = document.getElementById('lucky-numbers-section');
-        const luckyContainer = document.getElementById('lucky-numbers-container');
-
+        // Stage Extra: Separate Lucky Numbers
         if (luckyMax) {
+            updateStatus(4, 'active');
+            const luckySection = document.getElementById('lucky-numbers-section');
+            const luckyContainer = document.getElementById('lucky-numbers-container');
             luckySection.classList.remove('hidden');
             luckyContainer.innerHTML = '<div class="spinner"></div>';
-            // Scroll to lucky section first to show user it's loading
-            luckySection.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
             try {
-                // Chỉ dùng thông tin cá nhân cho con số may mắn theo yêu cầu của USER
                 const luckyRes = await callGeminiAI(apiKey, { fullName, dob, gender, tob, maxLucky: luckyMax }, 'lucky');
                 const numbers = (luckyRes.match(/\d+/g) || []).slice(0, 6);
 
@@ -199,12 +242,12 @@ analyzeBtn.addEventListener('click', async () => {
                 } else {
                     luckyContainer.innerHTML = "<p>Đang giải hạn, vui lòng thử lại sau...</p>";
                 }
+                updateStatus(4, 'completed');
             } catch (e) {
                 console.error("Lucky number error:", e);
+                updateStatus(4, 'error');
                 luckySection.classList.add('hidden');
             }
-        } else {
-            luckySection.classList.add('hidden');
         }
 
         if (!luckyMax) {
@@ -212,15 +255,28 @@ analyzeBtn.addEventListener('click', async () => {
         }
     } catch (error) {
         console.error(error);
-        alert('Có lỗi xảy ra: ' + error.message);
+        // Tìm bước đang active để báo lỗi
+        const activeStep = statusList.querySelector('.status-item.active');
+        if (activeStep) {
+            activeStep.className = 'status-item error';
+            activeStep.querySelector('i').className = 'fas fa-exclamation-circle';
+        }
+
+        let msg = error.message;
+        if (msg === "Failed to fetch") {
+            msg = "Lỗi kết nối: Không thể gửi yêu cầu tới AI. Hãy kiểm tra mạng hoặc API Key (Có thể API Key sai hoặc bị khóa).";
+        }
+        alert('Có lỗi xảy ra: ' + msg);
     } finally {
-        loadingOverlay.classList.add('hidden');
-        loadingText.innerText = "Đang giải mã bí mật của các vì sao...";
+        setTimeout(() => {
+            loadingOverlay.classList.add('hidden');
+            loadingText.innerText = "Đang giải mã bí mật của các vì sao...";
+        }, 1000); // Giữ lại chút cho user kịp nhìn trạng thái cuối
     }
 });
 
 async function callGeminiAI(apiKey, data, stage) {
-    const MODEL_ID = "gemini-2.5-flash";
+    const MODEL_ID = "gemini-2.5-flash"; // Luôn sử dụng Gemini 2.5 Flash theo yêu cầu của USER
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${apiKey}`;
 
     const currentYear = new Date().getFullYear();
