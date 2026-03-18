@@ -18,11 +18,11 @@ const resultSection = document.getElementById('result-section');
 const aiResponseDiv = document.getElementById('ai-response');
 const loadingOverlay = document.getElementById('loading-overlay');
 
-// State
 let palmImages = {
     left: null,
     right: null
 };
+let resolveApiKeyUpdate = null; // Dùng để tiếp tục khi có API Key mới
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -72,7 +72,14 @@ saveSettingsBtn.addEventListener('click', () => {
     if (key) {
         localStorage.setItem('gemini_api_key', key);
         settingsModal.classList.add('hidden');
-        alert('Đã lưu API Key thành công!');
+
+        // Nếu đang trong quá trình đợi API Key mới thì resolve để chạy tiếp
+        if (resolveApiKeyUpdate) {
+            resolveApiKeyUpdate(key);
+            resolveApiKeyUpdate = null;
+        } else {
+            alert('Đã lưu API Key thành công!');
+        }
     } else {
         alert('Vui lòng nhập API Key!');
     }
@@ -129,7 +136,7 @@ document.querySelectorAll('.remove-btn').forEach(btn => {
 
 // Enhanced Analysis Logic with Chaining
 analyzeBtn.addEventListener('click', async () => {
-    const apiKey = localStorage.getItem('gemini_api_key');
+    let apiKey = localStorage.getItem('gemini_api_key');
     if (!apiKey) {
         alert('Vui lòng cấu hình API Key trong phần cài đặt!');
         settingsModal.classList.remove('hidden');
@@ -204,21 +211,23 @@ analyzeBtn.addEventListener('click', async () => {
         // Stage 1: Core Identity & Palms (Sections 1-5)
         updateStatus(1, 'active');
         loadingText.innerText = "Đang thẩm thấu thông tin nhân tướng...";
-        const res1 = await callGeminiAI(apiKey, { fullName, dob, gender, tob, images: palmImages }, 1);
+        const res1 = await callGeminiWithRetry(apiKey, { fullName, dob, gender, tob, images: palmImages }, 1);
         fullResult += res1 + "\n";
         updateStatus(1, 'completed');
 
         // Stage 2: Life Path & Relations (Sections 6-10)
         updateStatus(2, 'active');
         loadingText.innerText = "Đang soi rọi đường công danh, tài lộc...";
-        const res2 = await callGeminiAI(apiKey, { fullName, dob, gender, tob, images: palmImages }, 2);
+        apiKey = localStorage.getItem('gemini_api_key'); // Lấy key mới nhất nhỡ đã đổi ở bước trước
+        const res2 = await callGeminiWithRetry(apiKey, { fullName, dob, gender, tob, images: palmImages }, 2);
         fullResult += res2 + "\n";
         updateStatus(2, 'completed');
 
         // Stage 3: Current Year & Advice (Sections 11-13)
         updateStatus(3, 'active');
         loadingText.innerText = "Đang bói quẻ vận hạn năm nay...";
-        const res3 = await callGeminiAI(apiKey, { fullName, dob, gender, tob, images: palmImages }, 3);
+        apiKey = localStorage.getItem('gemini_api_key'); // Lấy key mới nhất
+        const res3 = await callGeminiWithRetry(apiKey, { fullName, dob, gender, tob, images: palmImages }, 3);
         fullResult += res3;
         updateStatus(3, 'completed');
 
@@ -234,7 +243,8 @@ analyzeBtn.addEventListener('click', async () => {
             luckyContainer.innerHTML = '<div class="spinner"></div>';
 
             try {
-                const luckyRes = await callGeminiAI(apiKey, { fullName, dob, gender, tob, maxLucky: luckyMax }, 'lucky');
+                apiKey = localStorage.getItem('gemini_api_key'); // Lấy key mới nhất
+                const luckyRes = await callGeminiWithRetry(apiKey, { fullName, dob, gender, tob, maxLucky: luckyMax }, 'lucky');
                 const numbers = (luckyRes.match(/\d+/g) || []).slice(0, 6);
 
                 if (numbers.length >= 6) {
@@ -268,12 +278,71 @@ analyzeBtn.addEventListener('click', async () => {
         }
         alert('Có lỗi xảy ra: ' + msg);
     } finally {
+        resolveApiKeyUpdate = null; // Reset state
         setTimeout(() => {
             loadingOverlay.classList.add('hidden');
             loadingText.innerText = "Đang giải mã bí mật của các vì sao...";
-        }, 1000); // Giữ lại chút cho user kịp nhìn trạng thái cuối
+        }, 1000);
     }
 });
+
+// Hàm hỗ trợ tạm dừng và yêu cầu API Key mới
+function promptNewApiKey(message) {
+    return new Promise((resolve) => {
+        // Hiện thông báo (tùy chọn alert hoặc dùng chính UI modal)
+        setTimeout(() => {
+            settingsModal.classList.remove('hidden');
+            apiKeyInput.placeholder = "Nhập API Key mới để tiếp tục...";
+            apiKeyInput.focus();
+
+            // Có thể thêm thông báo lỗi vào modal nếu muốn
+            const note = settingsModal.querySelector('.note');
+            const originalNote = note.innerText;
+            note.style.color = 'var(--secondary-color)';
+            note.innerText = message;
+        }, 100);
+
+        resolveApiKeyUpdate = (newKey) => {
+            resolve(newKey);
+        };
+    });
+}
+
+// Wrapper gọi AI với cơ chế retry nếu lỗi Quota/API Key
+async function callGeminiWithRetry(initialApiKey, data, stage) {
+    let currentApiKey = initialApiKey;
+    while (true) {
+        try {
+            return await callGeminiAI(currentApiKey, data, stage);
+        } catch (error) {
+            const errorMsg = error.message.toLowerCase();
+            const isQuotaError = errorMsg.includes('quota') || errorMsg.includes('limit') || errorMsg.includes('exhausted') || errorMsg.includes('429');
+            const isKeyError = errorMsg.includes('api key') || errorMsg.includes('invalid') || errorMsg.includes('unauthorized') || errorMsg.includes('401') || errorMsg.includes('400');
+
+            if (isQuotaError || isKeyError) {
+                console.warn("Phát hiện lỗi API, đang tạm dừng để yêu cầu key mới:", error.message);
+                const promptMsg = isQuotaError ?
+                    "⚠️ API Key hiện tại đã hết hạn mức (Quota). Vui lòng nhập key mới để tiếp tục bước này." :
+                    "⚠️ API Key không hợp lệ hoặc bị lỗi. Vui lòng kiểm tra và nhập lại key mới.";
+
+                // Đổi icon của bước đang chạy sang trạng thái chờ/cảnh báo
+                const activeStep = document.querySelector('.status-item.active');
+                if (activeStep) {
+                    activeStep.querySelector('i').className = 'fas fa-pause-circle';
+                }
+
+                currentApiKey = await promptNewApiKey(promptMsg);
+
+                // Sau khi có key mới, khôi phục icon loading
+                if (activeStep) {
+                    activeStep.querySelector('i').className = 'fas fa-spinner fa-spin';
+                }
+            } else {
+                throw error; // Các lỗi khác (mạng, AI nội bộ...) thì throw để main catch xử lý
+            }
+        }
+    }
+}
 
 async function callGeminiAI(apiKey, data, stage) {
     const MODEL_ID = "gemini-2.5-flash"; // Luôn sử dụng Gemini 2.5 Flash theo yêu cầu của USER
